@@ -1,0 +1,16 @@
+# Ignore virtual environment
+venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore system files
+.DS_Store
+
+# Ignore model files or data dumps (optional)
+models/
+audio_files/
+*.mp3
+*.pkl
+*.index
