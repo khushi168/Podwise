@@ -1,31 +1,65 @@
-import faiss 
+import os
+import pickle
+import faiss
 import numpy as np
-import pickle   
 from sentence_transformers import SentenceTransformer
+import psycopg2
 
-# Load the saved FAISS index from file
-index = faiss.read_index("transcriptions.index")
+# Load models directory
+models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 
-# Load the id-to-text mapping from the pickle file
-with open("id_text_map.pkl", "rb") as f:
+# Load FAISS index
+index = faiss.read_index(os.path.join(models_dir, "transcriptions.index"))
+
+# Load mapping from FAISS index to DB ID
+with open(os.path.join(models_dir, "faiss_index_id_map.pkl"), "rb") as f:
+    index_to_db_id = pickle.load(f)
+
+# Load mapping from DB ID to text
+with open(os.path.join(models_dir, "id_text_map.pkl"), "rb") as f:
     id_text_map = pickle.load(f)
-    
-# Load the same SentenceTransformer model used during embedding generation
+
+# Load embedding model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Take user input for the search query
-query = input("enter your search query: ")
+# Input query
+query = input("Enter your search query: ")
 
-# Generate embedding for the input query
-query_embedding = model.encode([query])
-query_vector = np.array(query_embedding).astype('float32')
+# Convert query to embedding
+query_vec = model.encode([query])
+query_vec = np.array(query_vec).astype('float32')
+query_vec = query_vec / np.linalg.norm(query_vec, axis=1, keepdims=True)
 
-# Perform similarity search in FAISS (return top 3 results)
-distance, indices = index.search(query_vector, k=3)
+# Perform search
+distances, indices = index.search(query_vec, k=1)
 
-# Print the results, skip invalid indices
-print("\nTop matching transcriptions: ")
-for idx in indices[0]:
-    if idx == -1 or idx not in id_text_map:
-        continue  # Skip invalid or missing index
-    print("-", id_text_map[idx])
+# Threshold
+threshold = 0.1
+faiss_idx = int(indices[0][0])
+score = distances[0][0]
+
+print("\nTop matching transcription:")
+print(f"🔍 Match Score: {score:.4f}")
+
+# Check match
+if faiss_idx == -1 or score < threshold:
+    print("No relevant result found for your query.")
+else:
+    db_id = index_to_db_id[faiss_idx]
+
+    # Connect to DB to fetch filename
+    conn = psycopg2.connect(
+        host="localhost",
+        database="podcast_etl",
+        user="postgres",
+        password="160803"
+    )
+    cur = conn.cursor()
+    cur.execute("SELECT filename FROM transcriptions WHERE id = %s", (db_id,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    filename = result[0] if result else "Unknown"
+    print(f"📂 File: {filename}")
+    print(f"📝 Transcription: {id_text_map[db_id][:250]}...")
