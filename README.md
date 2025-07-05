@@ -1,30 +1,30 @@
-# PODWISE 🎧 
-![Python](https://img.shields.io/badge/Python-3.10-blue)  
-![License](https://img.shields.io/badge/License-MIT-green)  
-![Last Updated](https://img.shields.io/badge/Last_Updated-July_2025-orange)  
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+# PODWISE 🎧  
+  ![Python](https://img.shields.io/badge/Python-3.10-blue)  
+  ![License](https://img.shields.io/badge/License-MIT-green)  
+  ![Last Updated](https://img.shields.io/badge/Last_Updated-July_2025-orange)  
+  ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
-**Podwise** is a Podcast ETL (Extract, Transform, Load) pipeline that converts podcast `.mp3` files into searchable transcriptions using:
+**Podwise** is an end-to-end Podcast ETL (Extract, Transform, Load) pipeline that transforms `.mp3` podcast files into **searchable, clustered transcriptions** using:
 
-- 🧠 AssemblyAI for transcription
-- 🗃️ PostgreSQL for storage
-- 🔍 FAISS + SentenceTransformers for semantic search
-
----
-
-## Features
-
-- Automatically extracts audio files and transcribes them.
-- Stores transcriptions in a PostgreSQL database.
-- Generates semantic vector embeddings.
-- Allows natural language search across podcasts.
-- Uses FAISS for fast similarity search.
+- 🧠 AssemblyAI for transcription  
+- 🗃️ PostgreSQL for storage  
+- 🔍 SentenceTransformers + FAISS for semantic vector search  
 
 ---
 
-## Tech Stack
+## 🔥 Features
 
-- **Language**: Python 3.x  
+- 🎙️ Converts podcast audio into clean transcripts using AssemblyAI  
+- 🧾 Stores transcriptions along with topic tags and filenames in PostgreSQL  
+- 🧠 Generates semantic vector embeddings for deep searchability  
+- 🔍 Searches podcasts via natural language queries with FAISS  
+- 🗂️ Organized by **topic clusters** for scalable search  
+
+---
+
+## 🛠️ Tech Stack
+
+- **Language**: Python 3.10
 - **Libraries**:
   - `psycopg2-binary`
   - `sentence-transformers`
@@ -32,32 +32,36 @@
   - `numpy`
   - `pickle-mixin`
 - **Database**: PostgreSQL 16+
-- **Transcription API**: [AssemblyAI](https://www.assemblyai.com/)
+- **Transcription API**: [AssemblyAI](https://www.assemblyai.com/)  
 
 ---
 
-## 📁 Folder Structure
-  podcast_etl_project/
-  ├── audio_files/ # Raw .mp3 podcast files
-  ├── models/ # FAISS index + ID mapping
-  ├── scripts/ # ETL scripts
-  │ ├── fetch_transcriptions.py
-  │ ├── generate_embeddings.py
-  │ └── search_transcriptions.py
-  ├── main.py # Master orchestrator
-  ├── requirements.txt
-  ├── .gitignore
-  └── README.md
+## 📁 Project Structure
+
+    podcast_etl_project/
+    ├── audio_files/ # Raw .mp3 podcast files
+    ├── clustered_topics/ # Organized audio by topic clusters
+    ├── models/ # FAISS index + ID mappings
+    │ ├── transcriptions.index
+    │ ├── faiss_index_id_map.pkl
+    │ └── id_text_map.pkl
+    ├── scripts/ # Main ETL scripts
+    │ ├── fetch_transcriptions.py # Transcribes & stores in DB
+    │ ├── generate_embeddings.py # Embeds + indexes transcripts
+    │ └── search_transcriptions.py # Searches semantically
+    ├── main.py # Pipeline orchestrator (optional)
+    ├── requirements.txt
+    ├── .gitignore
+    └── README.md
 
 ---
 
-## Setup Instructions
+## 🚀 Getting Started
 
-### 1. Clone the repository
+### 1️⃣ Clone the repository
 '''bash
-    git clone https://github.com/khushi168/Podwise.git
-    cd Podwise
-
+git clone https://github.com/khushi168/Podwise.git
+cd Podwise
 
 ### 2. Create and activate virtual environment
     python -m venv venv
@@ -80,19 +84,29 @@
 
     CREATE TABLE transcriptions (
         id SERIAL PRIMARY KEY,
+        audio_url TEXT,
+        text TEXT,
+        transcript_id TEXT,
         filename TEXT,
-        text TEXT
-    );
+        topic TEXT
+      );
 
 
 ### 5. Run the pipeline
    ## Step 1: Transcribe and insert into DB
+   # Skips previously added files to avoid duplication
+   # Adds topic & filename tags automatically
      python scripts/fetch_transcriptions.py
 
    ## Step 2: Generate embeddings
+   # Generates normalized vector embeddings
+   # Stores them in FAISS index with ID mappings
      python scripts/generate_embeddings.py
 
    ## Step 3: Search semantically
+   # Query using natural language
+   # Retrieves top 1–2 most relevant podcast transcripts
+   # Displays filename, topic, match score, and preview
      python scripts/search_transcriptions.py
 
 ---
@@ -101,7 +115,7 @@
 
 '''bash
       git add .
-      git commit -m "Set up project structure and ETL pipeline"
+      git commit -m "Update ETL pipeline with topic clustering and semantic search improvements"
       git push origin master
 
 
