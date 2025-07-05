@@ -1,16 +1,22 @@
-# Ignore virtual environment
+# ✅ Ignore virtual environment
 venv/
 
-# Ignore Python cache
+# ✅ Ignore Python bytecode/cache
 __pycache__/
 *.pyc
 
-# Ignore system files
+# ✅ Ignore macOS system files
 .DS_Store
 
-# Ignore model files or data dumps (optional)
-models/
-audio_files/
-*.mp3
-*.pkl
-*.index
+# ✅ Ignore environment config (optional, if used)
+.env
+.env.local
+
+# ❗ DO NOT ignore models/ or audio_files/ if you want to version control scripts and data
+# Only ignore raw data or intermediate artifacts (optional)
+# Uncomment below if you want to skip pushing raw/generated content
+# audio_files/
+# models/
+# *.mp3
+# *.pkl
+# *.index
