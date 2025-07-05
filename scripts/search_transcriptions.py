@@ -5,61 +5,77 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 import psycopg2
 
-# Load models directory
+# ---------- Load FAISS index ----------
 models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
-
-# Load FAISS index
 index = faiss.read_index(os.path.join(models_dir, "transcriptions.index"))
 
-# Load mapping from FAISS index to DB ID
+# ---------- Load ID mappings ----------
 with open(os.path.join(models_dir, "faiss_index_id_map.pkl"), "rb") as f:
-    index_to_db_id = pickle.load(f)
+    index_to_dbid = pickle.load(f)
 
-# Load mapping from DB ID to text
 with open(os.path.join(models_dir, "id_text_map.pkl"), "rb") as f:
-    id_text_map = pickle.load(f)
+    dbid_to_text = pickle.load(f)
 
-# Load embedding model
+# ---------- Load embedding model ----------
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Input query
-query = input("Enter your search query: ")
+# ---------- Get user query ----------
+query = input("🔍 Enter your search query: ")
+print()
+embedding = model.encode([query])
+embedding = np.array(embedding).astype('float32')
+embedding = embedding / np.linalg.norm(embedding, axis=1, keepdims=True)
 
-# Convert query to embedding
-query_vec = model.encode([query])
-query_vec = np.array(query_vec).astype('float32')
-query_vec = query_vec / np.linalg.norm(query_vec, axis=1, keepdims=True)
+# ---------- Search in FAISS ----------
+D, I = index.search(embedding, k=5)  # Search top 5 to allow filtering
+threshold = 0.22  # Adjust this value higher for stricter filtering
 
-# Perform search
-distances, indices = index.search(query_vec, k=1)
+# ---------- Connect to DB ----------
+conn = psycopg2.connect(
+    host="localhost",
+    database="podcast_etl",
+    user="postgres",
+    password="160803"
+)
+cur = conn.cursor()
 
-# Threshold
-threshold = 0.1
-faiss_idx = int(indices[0][0])
-score = distances[0][0]
+# ---------- Display best matches ----------
+found_any = False
+shown = 0
+shown_ids = set()
 
-print("\nTop matching transcription:")
-print(f"🔍 Match Score: {score:.4f}")
+for faiss_idx, score in zip(I[0], D[0]):
+    if faiss_idx == -1 or score < threshold:
+        continue
 
-# Check match
-if faiss_idx == -1 or score < threshold:
-    print("No relevant result found for your query.")
-else:
-    db_id = index_to_db_id[faiss_idx]
+    matched_db_id = index_to_dbid[faiss_idx]
+    if matched_db_id in shown_ids:
+        continue
+    shown_ids.add(matched_db_id)
 
-    # Connect to DB to fetch filename
-    conn = psycopg2.connect(
-        host="localhost",
-        database="podcast_etl",
-        user="postgres",
-        password="160803"
-    )
-    cur = conn.cursor()
-    cur.execute("SELECT filename FROM transcriptions WHERE id = %s", (db_id,))
+    matched_text = dbid_to_text.get(matched_db_id, "[Text not found]")
+
+    # Fetch metadata
+    cur.execute("SELECT filename, topic FROM transcriptions WHERE id = %s", (matched_db_id,))
     result = cur.fetchone()
-    cur.close()
-    conn.close()
-
     filename = result[0] if result else "Unknown"
+    topic = result[1] if result and len(result) > 1 else "Unknown"
+
+    print(f"🎯 Match #{shown + 1}")
     print(f"📂 File: {filename}")
-    print(f"📝 Transcription: {id_text_map[db_id][:250]}...")
+    print(f"🏷️ Topic: {topic}")
+    print(f"🔍 Score: {score:.4f}")
+    print()
+    print(f"📝 Transcription: {matched_text[:300]}...\n")
+
+    found_any = True
+    shown += 1
+
+    if shown >= 2:  # Limit to 2 matches
+        break
+
+if not found_any:
+    print("❌ No highly relevant result found.")
+
+cur.close()
+conn.close()
