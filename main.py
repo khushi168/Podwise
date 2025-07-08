@@ -1,89 +1,75 @@
+import os
 import requests
-import time   #provides functions related to time and delays
-import psycopg2    #to connect & work with PosgtreSQL 
+import time
+import psycopg2
 
-API_Key='b54d78abb6754c60a6d2be277ae1308a' 
+API_Key = 'b54d78abb6754c60a6d2be277ae1308a'
+headers = {'authorization': API_Key}
+upload_url = 'https://api.assemblyai.com/v2/upload'
+transcript_url = 'https://api.assemblyai.com/v2/transcript'
 
-upload_url = 'https://api.assemblyai.com/v2/upload'    #endpoint to upload audio files
-
-print()
-
-headers={'authorization':API_Key}    #for API key authentication
-
-filename='short_test.mp3'
-
-#opening audio file in binary mode
-with open(filename, 'rb') as f:
-    #sending the file to assemblyAI using POST request
-    response=requests.post(upload_url, headers=headers, files={'file': f})
-    
-    #extract the uploaded audio URL from the response JSON
-    audio_url=response.json()['upload_url']
-    
-print("Audio Uploaded:", audio_url)
-print()
-
-#endpoint to request a transcription
-transcript_url='https://api.assemblyai.com/v2/transcript'
-
-#Prepare JSON data telling AssemblyAI where the uploaded audio is
-json_data={'audio_url': audio_url}
-
-#Send transcription request.
-response=requests.post(transcript_url, json=json_data, headers=headers)
-
-#get the unique transcription job id
-transcript_id=response.json()['id']
-
-print("Transcription requested, ID:", transcript_id)
-print()
-
-#URL to check the status of transcription job
-status_url=f'https://api.assemblyai.com/v2/transcript/{transcript_id}'
-
-print("Transcription in progress...", end='', flush=True)
-print()
-
-while True:
-    #get the current status of transcription job
-    response=requests.get(status_url, headers=headers)
-    
-    #get status field from JSON response
-    status=response.json()['status']
-    if status=='completed':
-        print("\nTranscription completed!")
-        print()
-        print(response.json()['text'])
-        break
-    elif status=='failed':
-        print("\rTranscription failed.")
-        break
-    else:
-        #pauses/sleeps the program for 3 seconds, we use it in the loop so that we don’t spam the API with rapid requests
-        time.sleep(3)    
-        
-
-#connect to postgreSQL db
-conn=psycopg2.connect(
-    host="localhost",          #database server location(local machine)
-    database="podcast_etl",    #name of the db
-    user="postgres",           #username to connect with(change if required)
-    password="160803",         #db password
+# Connect to PostgreSQL database
+conn = psycopg2.connect(
+    host="localhost",
+    database="podcast_etl",
+    user="postgres",
+    password="160803"
 )
+cur = conn.cursor()
 
-cur=conn.cursor()              #create a cursor object to execute SQL commands
+# Path to folder containing .mp3 files (and/or subfolders)
+root_folder = "audio_files"
 
-#insert transcription data
-cur.execute(
-    "INSERT INTO transcriptions (transcription_id, audio_url, text) VALUES (%s, %s, %s)",
-    
-    #provide values for each column
-    (transcript_id, audio_url, response.json()['text'])
-)
+# Loop through all subfolders and files
+for subdir, _, files in os.walk(root_folder):
+    for file in files:
+        if file.endswith(".mp3"):
+            file_path = os.path.join(subdir, file)
+            print(f"\n🔼 Uploading: {file_path}")
 
-#commit changes and close connection
-conn.commit()                   #commit changes to make sure data is saved in db
-cur.close()                     #close the cursor
-conn.close()                    #close connection to free resources
+            # Upload audio to AssemblyAI
+            with open(file_path, 'rb') as f:
+                response = requests.post(upload_url, headers=headers, files={'file': f})
+                audio_url = response.json().get('upload_url')
 
-print("\nTranscription data inserted into PostgreSQL database.")
+            print(f"✅ Uploaded. URL: {audio_url}")
+
+            # Request transcription
+            response = requests.post(transcript_url, json={'audio_url': audio_url}, headers=headers)
+            transcript_id = response.json().get('id')
+
+            print(f"📝 Transcription requested. ID: {transcript_id}")
+
+            # Check transcription status
+            status_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+            print("⏳ Transcription in progress...", end='', flush=True)
+
+            while True:
+                response = requests.get(status_url, headers=headers)
+                status = response.json()['status']
+
+                if status == 'completed':
+                    text = response.json()['text']
+                    print("\n✅ Transcription completed.")
+                    print(f"🧠 Text: {text[:100]}...")  # Preview first 100 chars
+
+                    # Insert transcription into database
+                    cur.execute(
+                        "INSERT INTO transcriptions (transcript_id, audio_url, text) VALUES (%s, %s, %s)", 
+                        (transcript_id, audio_url, text)
+                    )
+                    conn.commit()
+                    print("💾 Saved to PostgreSQL.")
+                    break
+
+                elif status == 'failed':
+                    print("\n❌ Transcription failed.")
+                    break
+
+                else:
+                    time.sleep(3)
+
+# Close DB connection
+cur.close()
+conn.close()
+print("\n✅ All files processed and saved to database.")

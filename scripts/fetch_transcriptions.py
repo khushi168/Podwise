@@ -14,12 +14,12 @@ conn = psycopg2.connect(
     password="160803"
 )
 cur = conn.cursor()
- 
+
 # Upload and transcribe files in all subfolders (clusters)
 for folder in sorted(os.listdir(AUDIO_FOLDER_ROOT)):
     cluster_path = os.path.join(AUDIO_FOLDER_ROOT, folder)
     if not os.path.isdir(cluster_path):
-        continue  # Skip files, only process folders
+        continue  # Skip non-folder items
 
     topic = folder.replace("_", " ").replace("cluster", "").strip()
 
@@ -31,70 +31,67 @@ for folder in sorted(os.listdir(AUDIO_FOLDER_ROOT)):
             # Upload to AssemblyAI
             try:
                 with open(filepath, "rb") as f:
-                    response = requests.post(
+                    upload_res = requests.post(
                         "https://api.assemblyai.com/v2/upload",
                         headers={"authorization": "b54d78abb6754c60a6d2be277ae1308a"},
                         files={"file": f}
                     )
-                response.raise_for_status()
-                upload_url = response.json().get("upload_url")
+                upload_res.raise_for_status()
+                upload_url = upload_res.json().get("upload_url")
+                print(f"✅ Uploaded. URL: {upload_url}")
             except Exception as e:
                 print(f"❌ Upload failed for {filename}: {e}")
                 continue
 
-            if not upload_url:
-                print(f"⚠️ No upload URL for {filename}. Skipping...")
-                continue
-
             # Request transcription
             try:
-                transcript_response = requests.post(
+                trans_res = requests.post(
                     "https://api.assemblyai.com/v2/transcript",
                     json={"audio_url": upload_url},
                     headers={"authorization": "b54d78abb6754c60a6d2be277ae1308a"}
                 )
-                transcript_response.raise_for_status()
-                transcript_id = transcript_response.json().get("id")
+                trans_res.raise_for_status()
+                transcript_id = trans_res.json().get("id")
+                print(f"📝 Transcription requested. ID: {transcript_id}")
             except Exception as e:
                 print(f"❌ Transcription request failed for {filename}: {e}")
                 continue
 
-            if not transcript_id:
-                print(f"⚠️ No transcript ID for {filename}. Skipping...")
-                continue
-
-            # Wait for transcription to complete
+            # Poll until complete
+            print("⏳ Waiting for transcription to complete...")
             while True:
                 poll = requests.get(
                     f"https://api.assemblyai.com/v2/transcript/{transcript_id}",
                     headers={"authorization": "b54d78abb6754c60a6d2be277ae1308a"}
                 ).json()
 
-                if poll["status"] == "completed":
+                if poll.get("status") == "completed":
                     text = poll.get("text")
+                    print(f"✅ Transcription complete.")
                     break
-                elif poll["status"] == "error":
-                    print(f"❌ Transcription failed for {filename}: {poll.get('error')}")
+                elif poll.get("status") == "error":
+                    print(f"❌ Transcription failed: {poll.get('error')}")
                     text = None
                     break
                 time.sleep(3)
 
-            # Insert into DB if successful
+            # Insert into DB (skip if filename exists)
             if transcript_id and upload_url and text:
                 try:
                     cur.execute("""
                         INSERT INTO transcriptions (transcript_id, audio_url, text, filename, topic)
                         VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (filename) DO NOTHING
                     """, (transcript_id, upload_url, text, filename, topic))
                     conn.commit()
-                    print(f"✅ {filename} transcribed and stored.")
+                    print(f"📥 Saved: {filename}")
                 except psycopg2.Error as e:
                     conn.rollback()
-                    print(f"❌ Failed to insert {filename}: {e}")
+                    print(f"❌ DB insert failed for {filename}: {e}")
             else:
                 print(f"⚠️ Skipped {filename} due to missing data.")
 
 # Close DB connection
 cur.close()
 conn.close()
-print("\n✅ All clusters processed and database updated.")
+print("\n✅ All audio files processed. Database is up to date.")
