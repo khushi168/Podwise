@@ -1,14 +1,15 @@
 # PODWISE 🎧  
-  ![Python](https://img.shields.io/badge/Python-3.10-blue)  
-  ![License](https://img.shields.io/badge/License-MIT-green)  
-  ![Last Updated](https://img.shields.io/badge/Last_Updated-July_2025-orange)  
-  ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.10-blue)  
+![License](https://img.shields.io/badge/License-MIT-green)  
+![Last Updated](https://img.shields.io/badge/Last_Updated-July_2025-orange)  
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
 **Podwise** is an end-to-end Podcast ETL (Extract, Transform, Load) pipeline that transforms `.mp3` podcast files into **searchable, clustered transcriptions** using:
 
 - 🧠 AssemblyAI for transcription  
 - 🗃️ PostgreSQL for storage  
 - 🔍 SentenceTransformers + FAISS for semantic vector search  
+- 🌐 Streamlit frontend with secure login/signup system  
 
 ---
 
@@ -19,13 +20,19 @@
 - 🧠 Generates semantic vector embeddings for deep searchability  
 - 🔍 Searches podcasts via natural language queries with FAISS  
 - 🗂️ Organized by **topic clusters** for scalable search  
+- 🧩 Upload and transcribe new `.mp3` files via browser  
+- 🔐 Seamless **Login / Signup** system using `bcrypt` and `users.json`  
+- 🧠 Option to show more/less topics dynamically for quick access  
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Language**: Python 3.10
+- **Language**: Python 3.10+
 - **Libraries**:
+  - `streamlit`
+  - `bcrypt`
+  - `requests`
   - `psycopg2-binary`
   - `sentence-transformers`
   - `faiss-cpu`
@@ -38,19 +45,22 @@
 
 ## 📁 Project Structure
 
-    podcast_etl_project/
-    ├── audio_files/ # Raw .mp3 podcast files
-    ├── clustered_topics/ # Organized audio by topic clusters
-    ├── models/ # FAISS index + ID mappings
-    │ ├── transcriptions.index
-    │ ├── faiss_index_id_map.pkl
-    │ └── id_text_map.pkl
-    ├── scripts/ # Main ETL scripts
-    │ ├── fetch_transcriptions.py # Transcribes & stores in DB
-    │ ├── generate_embeddings.py # Embeds + indexes transcripts
-    │ └── search_transcriptions.py # Searches semantically
-    ├── main.py # Pipeline orchestrator (optional)
-    ├── requirements.txt
+    Podwise/
+    ├── audio_files/                # All uploaded podcast .mp3 files, grouped by topic
+    │   └── AI_cluster/
+    │   └── Sleep_cluster/
+    ├── models/                     # FAISS index and ID mappings
+    │   ├── transcriptions.index
+    │   ├── faiss_index_id_map.pkl
+    │   └── id_text_map.pkl
+    ├── scripts/                    # Core ETL and backend scripts
+    │   ├── fetch_transcriptions.py   # Uses AssemblyAI to transcribe audio and insert into DB
+    │   ├── generate_embeddings.py    # Converts transcripts into vector embeddings + FAISS
+    │   └── search_api.py             # Backend API for semantic search
+    ├── auth_app.py                 # Streamlit login/signup with bcrypt
+    ├── frontend.py                 # Main Streamlit frontend (search + upload)
+    ├── users.json                  # Auto-generated user DB with hashed passwords
+    ├── requirements.txt            # Python dependencies
     ├── .gitignore
     └── README.md
 
@@ -59,9 +69,11 @@
 ## 🚀 Getting Started
 
 ### 1️⃣ Clone the repository
+
 '''bash
-git clone https://github.com/khushi168/Podwise.git
-cd Podwise
+      git clone https://github.com/khushi168/Podwise.git
+      cd Podwise
+
 
 ### 2. Create and activate virtual environment
     python -m venv venv
@@ -94,29 +106,58 @@ cd Podwise
 
 ### 5. Run the pipeline
    ## Step 1: Transcribe and insert into DB
-   # Skips previously added files to avoid duplication
-   # Adds topic & filename tags automatically
-     python scripts/fetch_transcriptions.py
+       # Skips previously added files to avoid duplication
+       # Adds topic & filename tags automatically
+    python scripts/fetch_transcriptions.py
 
    ## Step 2: Generate embeddings
-   # Generates normalized vector embeddings
-   # Stores them in FAISS index with ID mappings
-     python scripts/generate_embeddings.py
+       # Generates normalized vector embeddings
+       # Stores them in FAISS index with ID mappings
+    python scripts/generate_embeddings.py
 
    ## Step 3: Search semantically
-   # Query using natural language
-   # Retrieves top 1–2 most relevant podcast transcripts
-   # Displays filename, topic, match score, and preview
+       # Query using natural language
+       # Retrieves top 1–2 most relevant podcast transcripts
+       # Displays filename, topic, match score, and preview
      python scripts/search_transcriptions.py
+
+   ## Step 4: Search locally using CLI
+    python scripts/search_api.py
 
 ---
 
-### Step 6: Push your changes to GitHub after setting up the .gitignore, requirements.txt, etc.
+### Step 6: Start the Login + Frontend App
 
-'''bash
-      git add .
-      git commit -m "Update ETL pipeline with topic clustering and semantic search improvements"
-      git push origin master
+    streamlit run auth_app.py
+    
+✅ Once logged in or signed up, it redirects to frontend.py, where you can:
+
+  # Upload new .mp3 files under a topic
+  # Search across podcast content using natural language  
+  # Listen to the results in-browser 
+  # Dynamically explore topic clusters with “Show more topics” toggle
+
+### step 7: users.json Format (auto-generated)
+    {
+      "users": [
+        {
+          "username": "khushi",
+          "password": "$2b$12$..."
+        }
+      ]
+    }
+
+### step 8: ✅ Sample Git Commands
+    # Stage all changes
+    git add .
+    
+    # Commit
+    git commit -m "Add login/signup with bcrypt and integrate frontend redirection"
+    
+    # Push to GitHub
+    git push origin main
 
 
-✅ You can now copy and paste this updated markdown into your `README.md` file in VS Code.
+👤 Author:
+Khushi Batra – https://www.linkedin.com/in/khushi-batra-445266229/ (LinkedIn)
+For queries, suggestions, or collaboration, feel free to connect!
