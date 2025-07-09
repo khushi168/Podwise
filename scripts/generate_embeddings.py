@@ -12,18 +12,21 @@ DB_CONFIG = {
     "user": "postgres",
     "password": "160803"
 }
-MODEL_NAME = "paraphrase-MiniLM-L3-v2"  # lightweight model, change if needed
+MODEL_NAME = "all-MiniLM-L6-v2"  # Keep it consistent with search_transcriptions.py
 
 # ---------- Directory Setup ----------
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-# ---------- Fetch Data from PostgreSQL ----------
+# ---------- Fetch Valid Data from PostgreSQL ----------
 try:
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
-    cur.execute("SELECT id, text FROM transcriptions WHERE text IS NOT NULL")
+    cur.execute("""
+        SELECT id, text FROM transcriptions
+        WHERE text IS NOT NULL AND filename IS NOT NULL AND topic IS NOT NULL
+    """)
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -32,15 +35,15 @@ except Exception as e:
     exit(1)
 
 if not rows:
-    print("⚠️ No transcriptions found in the database.")
+    print("⚠️ No valid transcriptions found in the database.")
     exit(0)
 
 ids = [row[0] for row in rows]
 texts = [row[1].strip() for row in rows]
 
-print(f"🔎 Loaded {len(texts)} transcriptions.")
+print(f"🔎 Loaded {len(texts)} valid transcriptions.")
 
-# ---------- Load SentenceTransformer Model ----------
+# ---------- Load Embedding Model ----------
 try:
     model = SentenceTransformer(MODEL_NAME)
 except Exception as e:
@@ -51,7 +54,7 @@ except Exception as e:
 print("📌 Generating sentence embeddings...")
 embeddings = model.encode(texts, show_progress_bar=True)
 
-# Convert to float32 and normalize for cosine similarity
+# Normalize embeddings for cosine similarity
 embeddings_np = np.array(embeddings).astype("float32")
 embeddings_np = embeddings_np / np.linalg.norm(embeddings_np, axis=1, keepdims=True)
 
@@ -60,7 +63,7 @@ index = faiss.IndexFlatIP(embeddings_np.shape[1])
 index.add(embeddings_np)
 faiss.write_index(index, os.path.join(MODELS_DIR, "transcriptions.index"))
 
-# ---------- Save Mappings ----------
+# ---------- Save Mapping Files ----------
 with open(os.path.join(MODELS_DIR, "faiss_index_id_map.pkl"), "wb") as f:
     pickle.dump(ids, f)
 

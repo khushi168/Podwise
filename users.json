@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "username": "myuser",
+      "password": "$2b$12$n1fbsHqTQtREPl9/ptDbvuLC7P3d4DNDQuepO1bO4i7GgjjfbGtp6"
+    },
+    {
+      "username": "khushi batra",
+      "password": "$2b$12$JsamJGNozTRmtgBqOSCQEOFRyQ7ihpllyM0s7/x0wAZktfMnSFvlG"
+    }
+  ]
+}
