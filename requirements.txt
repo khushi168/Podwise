@@ -1,3 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 altair==5.5.0
 attrs==25.3.0
 bcrypt==4.3.0
@@ -45,7 +46,7 @@ streamlit==1.46.1
 streamlit-authenticator==0.2.2
 tenacity==9.1.2
 threadpoolctl==3.6.0
-torch==2.5.1
+torch==2.0.1+cpu
 tornado==6.5.1
 tqdm==4.67.1
 transformers==4.53.1
