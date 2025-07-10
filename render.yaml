@@ -2,6 +2,7 @@ services:
   - type: web
     name: podwise-backend
     runtime: python
+    pythonVersion: 3.10.12
     buildCommand: pip install -r requirements.txt
     startCommand: python scripts/search_api.py
     envVars:
