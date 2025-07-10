@@ -76,15 +76,22 @@ else:
 
 
 
-# Add custom footer
-custom_footer = """
+# Add at the very end of auth_app.py or frontend.py
+footer = """
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stDeployButton {visibility: hidden;}
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 14px;
+            color: gray;
+            z-index: 100;
+        }
     </style>
-    <div style="position: fixed; bottom: 10px; right: 10px; background-color: #f0f2f6; padding: 6px 10px; border-radius: 10px; font-size: 14px;">
-        🚀 Created by <a href="https://github.com/khushi168" target="_blank" style="text-decoration: none; color: #3366cc;"><b>Khushi Batra</b></a>
+    <div class="footer">
+        Created by: <strong>Khushi Batra</strong> • 
+        <a href="https://github.com/khushi168" target="_blank">GitHub</a>
     </div>
 """
-st.markdown(custom_footer, unsafe_allow_html=True)
+st.markdown(footer, unsafe_allow_html=True)
+
