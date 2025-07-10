@@ -1,6 +1,7 @@
 import streamlit as st
-import requests
 import os
+from search_api import streamlit_search, transcribe_file
+
 
 def run_podwise_frontend():
     if not st.session_state.get("authenticated"):
@@ -28,32 +29,25 @@ def run_podwise_frontend():
 
     if st.button("Search") and query.strip():
         try:
-            payload = {"query": query}
-            if search_topic != "🔽 Select a topic...":
-                payload["topic"] = search_topic
+            topic = search_topic if search_topic != "🔽 Select a topic..." else None
+            result = streamlit_search(query, topic)
 
-            response = requests.post("http://localhost:5000/search", json=payload)
+            if result.get("match_found"):
+                st.success("✅ Match Found!")
+                st.markdown(f"**📜 Transcription Snippet:** {result['text']}")
+                st.markdown(f"**📁 Filename:** `{result['filename']}`")
+                st.markdown(f"**🗂️ Topic:** `{result['topic']}`")
+                st.markdown(f"**📈 Score:** `{round(result['score'], 2)}`")
 
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("match_found"):
-                    st.success("✅ Match Found!")
-                    st.markdown(f"**📜 Transcription Snippet:** {result['text']}")
-                    st.markdown(f"**📁 Filename:** `{result['filename']}`")
-                    st.markdown(f"**🗂️ Topic:** `{result['topic']}`")
-                    st.markdown(f"**📈 Score:** `{round(result['score'], 2)}`")
-
-                    audio_file_path = f"audio_files/{result['topic'].replace(' ', '_')}_cluster/{result['filename']}"
-                    if os.path.exists(audio_file_path):
-                        with open(audio_file_path, "rb") as audio_file:
-                            audio_bytes = audio_file.read()
-                            st.audio(audio_bytes, format="audio/mp3")
-                    else:
-                        st.error(f"🔇 Audio file not found at: `{audio_file_path}`")
+                audio_file_path = f"audio_files/{result['topic'].replace(' ', '_')}_cluster/{result['filename']}"
+                if os.path.exists(audio_file_path):
+                    with open(audio_file_path, "rb") as audio_file:
+                        audio_bytes = audio_file.read()
+                        st.audio(audio_bytes, format="audio/mp3")
                 else:
-                    st.warning("🫥 No meaningful match found. Try rephrasing?")
+                    st.error(f"🔇 Audio file not found at: `{audio_file_path}`")
             else:
-                st.error("🥴 Backend error.")
+                st.warning("🫥 No meaningful match found. Try rephrasing?")
         except Exception as e:
             st.exception(e)
 
@@ -86,13 +80,9 @@ def run_podwise_frontend():
                         with open(save_path, "wb") as f:
                             f.write(uploaded_file.read())
 
-                        res = requests.post("http://localhost:5000/transcribe", json={
-                            "filepath": save_path,
-                            "filename": uploaded_file.name,
-                            "topic": topic_to_use
-                        })
+                        success = transcribe_file(save_path, uploaded_file.name, topic_to_use)
 
-                        if res.status_code == 200:
+                        if success:
                             st.success("✅ File uploaded and transcribed successfully!")
                         else:
                             st.error("❌ Upload succeeded, but transcription failed.")
