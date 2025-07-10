@@ -73,3 +73,18 @@ if not st.session_state.get("authenticated"):
 else:
     # ✅ User authenticated — run main app
     run_podwise_frontend()
+
+
+
+# Add custom footer
+custom_footer = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stDeployButton {visibility: hidden;}
+    </style>
+    <div style="position: fixed; bottom: 10px; right: 10px; background-color: #f0f2f6; padding: 6px 10px; border-radius: 10px; font-size: 14px;">
+        🚀 Created by <a href="https://github.com/khushi168" target="_blank" style="text-decoration: none; color: #3366cc;"><b>Khushi Batra</b></a>
+    </div>
+"""
+st.markdown(custom_footer, unsafe_allow_html=True)
