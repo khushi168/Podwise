@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: podwise-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/search_api.py
+    envVars:
+      - key: ASSEMBLYAI_API_KEY
+        value: b54d78abb6754c60a6d2be277ae1308a
+      - key: DATABASE_URL
+        value: postgres://your_db_connection_string
