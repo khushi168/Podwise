@@ -1,8 +1,36 @@
 import streamlit as st
 import os
-from search_api import streamlit_search, transcribe_file
+import requests
 
+BACKEND_URL = "https://podwise.onrender.com"
 
+# ---------------------------
+# 🔍 Search from Backend
+# ---------------------------
+def streamlit_search(query, topic=None):
+    try:
+        payload = {"query": query, "topic": topic} if topic else {"query": query}
+        response = requests.post(f"{BACKEND_URL}/search", json=payload)
+        return response.json()
+    except Exception as e:
+        return {"match_found": False, "error": str(e)}
+
+# ---------------------------
+# 🎧 Upload and Transcribe
+# ---------------------------
+def transcribe_file(filepath, filename, topic):
+    try:
+        with open(filepath, "rb") as file:
+            files = {"file": (filename, file, "audio/mpeg")}
+            data = {"topic": topic}
+            response = requests.post(f"{BACKEND_URL}/upload", files=files, data=data)
+        return response.status_code == 200
+    except Exception as e:
+        return False
+
+# ---------------------------
+# 🌐 Frontend App
+# ---------------------------
 def run_podwise_frontend():
     if not st.session_state.get("authenticated"):
         st.error("You must log in first.")
@@ -39,13 +67,8 @@ def run_podwise_frontend():
                 st.markdown(f"**🗂️ Topic:** `{result['topic']}`")
                 st.markdown(f"**📈 Score:** `{round(result['score'], 2)}`")
 
-                audio_file_path = f"audio_files/{result['topic'].replace(' ', '_')}_cluster/{result['filename']}"
-                if os.path.exists(audio_file_path):
-                    with open(audio_file_path, "rb") as audio_file:
-                        audio_bytes = audio_file.read()
-                        st.audio(audio_bytes, format="audio/mp3")
-                else:
-                    st.error(f"🔇 Audio file not found at: `{audio_file_path}`")
+                audio_url = f"{BACKEND_URL}/audio/{result['topic'].replace(' ', '_')}_cluster/{result['filename']}"
+                st.audio(audio_url, format="audio/mp3")
             else:
                 st.warning("🫥 No meaningful match found. Try rephrasing?")
         except Exception as e:
@@ -73,10 +96,8 @@ def run_podwise_frontend():
                     if not topic_to_use:
                         st.warning("⚠️ Please enter a custom topic.")
                     else:
-                        cluster_folder = f"audio_files/{topic_to_use.replace(' ', '_')}_cluster"
-                        os.makedirs(cluster_folder, exist_ok=True)
-                        save_path = os.path.join(cluster_folder, uploaded_file.name)
-
+                        save_path = os.path.join("temp_upload", uploaded_file.name)
+                        os.makedirs("temp_upload", exist_ok=True)
                         with open(save_path, "wb") as f:
                             f.write(uploaded_file.read())
 
