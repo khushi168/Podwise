@@ -3,7 +3,7 @@ services:
     name: podwise-backend
     env: docker
     plan: free
-    dockerfilepath: dockerfile
+    dockerfilepath: Dockerfile
     autoDeploy: true
     envVars:
       - key: ASSEMBLYAI_API_KEY
