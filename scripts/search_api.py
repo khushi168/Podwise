@@ -8,7 +8,7 @@ import psycopg2
 from sentence_transformers import SentenceTransformer
 import requests
 
-ASSEMBLYAI_API_KEY = "b54d78abb6754c60a6d2be277ae1308a"
+ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
 # --- Utility Functions ---
 def streamlit_search(query: str, topic: str = None):
