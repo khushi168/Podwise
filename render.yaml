@@ -9,4 +9,4 @@ services:
       - key: ASSEMBLYAI_API_KEY
         value: b54d78abb6754c60a6d2be277ae1308a
       - key: DATABASE_URL
-        value: postgres://your_db_connection_string
+        value: postgres://podwise_db_user:xPyDfdWdT92QzeI4iwnzvnQH87sczTCd@dpg-d1nr0pbe5dus73b7pn8g-a.singapore-postgres.render.com/podwise_db
