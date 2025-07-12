@@ -27,7 +27,7 @@ def semantic_search(query=None):
 
     # ---------- Search in FAISS ----------
     D, I = index.search(embedding, k=5)
-    threshold = 0.25  # Increased for more accuracy
+    threshold = 0.05  # Increased for more accuracy
 
     # ---------- Connect to DB ----------
     conn = psycopg2.connect(
@@ -41,7 +41,7 @@ def semantic_search(query=None):
     found_match = False
 
     for faiss_idx, score in zip(I[0], D[0]):
-        if faiss_idx == -1 or score < threshold:
+        if faiss_idx == -1:
             continue
 
         matched_db_id = index_to_dbid[faiss_idx]

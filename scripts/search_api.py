@@ -3,14 +3,14 @@ import time
 import requests
 import streamlit as st
 
-# Replace with your actual backend URL
+# ✅ Use your deployed backend URL
 BACKEND_URL = "https://podwise.onrender.com"
 
-# Get API Key from environment variable
+# ✅ Securely get API key from environment variable
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
 def streamlit_search(query: str, topic: str = None):
-    """Send search query to backend API and return results"""
+    """🔍 Send search query to backend API and return results"""
     try:
         payload = {"query": query}
         if topic:
@@ -23,12 +23,12 @@ def streamlit_search(query: str, topic: str = None):
         raise e
 
 def transcribe_file(filepath, filename, topic):
-    """Upload MP3 and trigger transcription using backend API"""
+    """📤 Upload MP3 and trigger transcription via backend API"""
     try:
         with open(filepath, "rb") as f:
             files = {'file': (filename, f, 'audio/mpeg')}
             data = {'topic': topic}
-            headers = {"Authorization": ASSEMBLYAI_API_KEY}  # optional if needed at frontend
+            headers = {"Authorization": ASSEMBLYAI_API_KEY}  # Optional if backend uses it
             res = requests.post(f"{BACKEND_URL}/upload", data=data, files=files)
             res.raise_for_status()
             return True
