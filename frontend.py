@@ -1,39 +1,8 @@
 import streamlit as st
 import os
-import requests
 
-# Replace with your backend Render URL
-BACKEND_URL = "https://podwise.onrender.com"
-
-# ---------------------------
-# 🔍 Search from Backend
-# ---------------------------
-def streamlit_search(query, topic=None):
-    try:
-        payload = {"query": query, "topic": topic} if topic else {"query": query}
-        response = requests.post(f"{BACKEND_URL}/search", json=payload)
-        response.raise_for_status()
-        results = response.json().get("results", [])
-        return results
-    except Exception as e:
-        st.error("❌ Failed to fetch search results from backend.")
-        st.exception(e)
-        return []
-
-# ---------------------------
-# 🎧 Upload and Transcribe
-# ---------------------------
-def transcribe_file(filepath, filename, topic):
-    try:
-        with open(filepath, "rb") as file:
-            files = {"file": (filename, file, "audio/mpeg")}
-            data = {"topic": topic}
-            response = requests.post(f"{BACKEND_URL}/upload", files=files, data=data)
-        return response.status_code == 200
-    except Exception as e:
-        st.error("❌ Upload or transcription failed.")
-        st.exception(e)
-        return False
+# 👇 Local script import (no backend URL)
+from scripts.search_api import streamlit_search, transcribe_file
 
 # ---------------------------
 # 🌐 Frontend App
@@ -66,24 +35,25 @@ def run_podwise_frontend():
     query = st.text_input("🔍 Enter your query:", placeholder="e.g., What are the benefits of deep sleep?")
 
     if st.button("Search") and query.strip():
-        try:
-            topic_param = search_topic if search_topic != "🔽 Select a topic..." else None
-            results = streamlit_search(query, topic_param)
+        topic_param = search_topic if search_topic != "🔽 Select a topic..." else None
+        results = streamlit_search(query, topic_param)
 
-            if results:
-                top = results[0]
-                st.success("✅ Match Found!")
-                st.markdown(f"**📜 Transcription Snippet:** {top['text']}")
-                st.markdown(f"**📁 Filename:** `{top['filename']}`")
-                st.markdown(f"**🗂️ Topic:** `{top['topic']}`")
-                st.markdown(f"**📈 Score:** `{round(top['score'], 2)}`")
+        if results:
+            top = results[0]
+            st.success("✅ Match Found!")
+            st.markdown(f"**📜 Transcription Snippet:** {top['text']}") 
+            st.markdown(f"**📁 Filename:** `{top['filename']}`")
+            st.markdown(f"**🗂️ Topic:** `{top['topic']}`")
+            st.markdown(f"**📈 Score:** `{round(top['score'], 2)}`")
 
-                audio_url = f"{BACKEND_URL}/audio/{top['topic'].replace(' ', '_')}_cluster/{top['filename']}"
-                st.audio(audio_url, format="audio/mp3")
+            # 🔊 Play local audio file
+            audio_path = os.path.join("audio_files", top['topic'], top['filename'])
+            if os.path.exists(audio_path):
+                st.audio(audio_path, format="audio/mp3")
             else:
-                st.warning("🫥 No meaningful match found. Try rephrasing?")
-        except Exception as e:
-            st.exception(e)
+                st.warning("⚠️ Audio file not found locally.")
+        else:
+            st.warning("🫥 No meaningful match found. Try rephrasing?")
 
     st.markdown("---")
 
@@ -103,29 +73,26 @@ def run_podwise_frontend():
 
     if st.button("Upload & Transcribe"):
         if uploaded_file:
-            try:
-                if selected_upload_topic == "🔽 Select a topic...":
-                    st.warning("⚠️ Please select a topic or enter a custom one.")
+            if selected_upload_topic == "🔽 Select a topic...":
+                st.warning("⚠️ Please select a topic or enter a custom one.")
+            else:
+                topic_to_use = custom_topic.strip() if selected_upload_topic == "Other" else selected_upload_topic
+                if not topic_to_use:
+                    st.warning("⚠️ Please enter a custom topic.")
                 else:
-                    topic_to_use = custom_topic.strip() if selected_upload_topic == "Other" else selected_upload_topic
-                    if not topic_to_use:
-                        st.warning("⚠️ Please enter a custom topic.")
+                    temp_dir = "temp_upload"
+                    os.makedirs(temp_dir, exist_ok=True)
+                    save_path = os.path.join(temp_dir, uploaded_file.name)
+
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.read())
+
+                    success = transcribe_file(save_path, uploaded_file.name, topic_to_use)
+                    os.remove(save_path)
+
+                    if success:
+                        st.success("✅ File uploaded and transcribed successfully!")
                     else:
-                        temp_dir = "temp_upload"
-                        os.makedirs(temp_dir, exist_ok=True)
-                        save_path = os.path.join(temp_dir, uploaded_file.name)
-
-                        with open(save_path, "wb") as f:
-                            f.write(uploaded_file.read())
-
-                        success = transcribe_file(save_path, uploaded_file.name, topic_to_use)
-                        os.remove(save_path)  # Clean up file after use
-
-                        if success:
-                            st.success("✅ File uploaded and transcribed successfully!")
-                        else:
-                            st.error("❌ Upload succeeded, but transcription failed.")
-            except Exception as e:
-                st.exception(e)
+                        st.error("❌ Upload succeeded, but transcription failed.")
         else:
             st.warning("⚠️ Please select a file to upload.")
