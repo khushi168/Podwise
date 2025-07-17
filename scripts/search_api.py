@@ -10,10 +10,14 @@ import time
 
 app = Flask(__name__)
 
+# Define base directory and model path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, "models")
+
 # Load FAISS index and mappings
-index_path = "transcriptions.index"
-id_map_path = "id_text_map.pkl"
-index_id_map_path = "faiss_index_id_map.pkl"
+index_path = os.path.join(MODEL_DIR, "transcriptions.index")
+id_map_path = os.path.join(MODEL_DIR, "id_text_map.pkl")
+index_id_map_path = os.path.join(MODEL_DIR, "faiss_index_id_map.pkl")
 
 faiss_index = faiss.read_index(index_path)
 
@@ -23,9 +27,10 @@ with open(id_map_path, "rb") as f:
 with open(index_id_map_path, "rb") as f:
     faiss_index_id_map = pickle.load(f)
 
+# Load SentenceTransformer model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-
+# Search function
 def search_similar_texts(query, k=5):
     query_vector = model.encode([query])
     D, I = faiss_index.search(query_vector, k)
@@ -38,7 +43,7 @@ def search_similar_texts(query, k=5):
                 results.append({"text_id": text_id, "text": text})
     return results
 
-
+# Search endpoint
 @app.route("/search", methods=["POST"])
 def streamlit_search():
     data = request.json
@@ -49,7 +54,7 @@ def streamlit_search():
     results = search_similar_texts(query)
     return jsonify({"results": results})
 
-
+# Upload + Transcription endpoint
 @app.route("/upload", methods=["POST"])
 def transcribe_file():
     file = request.files.get("file")
@@ -90,7 +95,7 @@ def transcribe_file():
 
     transcript_id = transcript_response.json()["id"]
 
-    # Poll for completion
+    # Polling for completion
     while True:
         polling_response = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{transcript_id}",
@@ -105,7 +110,7 @@ def transcribe_file():
             return jsonify({"error": "Transcription failed"}), 500
         time.sleep(3)
 
-    # Insert into PostgreSQL
+    # Insert transcript into PostgreSQL
     try:
         conn = psycopg2.connect(
             host="localhost",
@@ -126,6 +131,6 @@ def transcribe_file():
 
     return jsonify({"message": "File transcribed and inserted successfully", "text": text})
 
-
+# Run Flask server
 if __name__ == "__main__":
     app.run(host="localhost", port=5000)
