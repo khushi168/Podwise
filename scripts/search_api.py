@@ -12,12 +12,19 @@ app = Flask(__name__)
 
 # Define base directory and model path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = os.path.join(BASE_DIR, "models")
+MODEL_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "models"))
 
 # Load FAISS index and mappings
 index_path = os.path.join(MODEL_DIR, "transcriptions.index")
 id_map_path = os.path.join(MODEL_DIR, "id_text_map.pkl")
 index_id_map_path = os.path.join(MODEL_DIR, "faiss_index_id_map.pkl")
+
+if not os.path.exists(index_path):
+    raise FileNotFoundError(f"FAISS index not found at {index_path}")
+if not os.path.exists(id_map_path):
+    raise FileNotFoundError(f"ID-Text Map not found at {id_map_path}")
+if not os.path.exists(index_id_map_path):
+    raise FileNotFoundError(f"FAISS Index-ID Map not found at {index_id_map_path}")
 
 faiss_index = faiss.read_index(index_path)
 
