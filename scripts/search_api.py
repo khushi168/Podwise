@@ -1,37 +1,49 @@
+from fastapi import FastAPI, UploadFile, Form, File
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+import shutil
 import os
-import time
-import requests
-import streamlit as st
 
-# ✅ Use your deployed backend URL
-BACKEND_URL = "https://podwise.onrender.com"
+app = FastAPI()
 
-# ✅ Securely get API key from environment variable
-ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
+# Allow CORS so frontend can access backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can specify your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def streamlit_search(query: str, topic: str = None):
-    """🔍 Send search query to backend API and return results"""
-    try:
-        payload = {"query": query}
-        if topic:
-            payload["topic"] = topic
-        res = requests.post(f"{BACKEND_URL}/search", json=payload)
-        res.raise_for_status()
-        return res.json().get("results", [])
-    except Exception as e:
-        st.error("❌ Failed to fetch search results from backend.")
-        raise e
+# 🔍 Mock Search Endpoint
+class SearchQuery(BaseModel):
+    query: str
+    topic: str = None
 
-def transcribe_file(filepath, filename, topic):
-    """📤 Upload MP3 and trigger transcription via backend API"""
-    try:
-        with open(filepath, "rb") as f:
-            files = {'file': (filename, f, 'audio/mpeg')}
-            data = {'topic': topic}
-            headers = {"Authorization": ASSEMBLYAI_API_KEY}  # Optional if backend uses it
-            res = requests.post(f"{BACKEND_URL}/upload", data=data, files=files)
-            res.raise_for_status()
-            return True
-    except Exception as e:
-        st.error("❌ Upload or transcription failed.")
-        raise e
+@app.post("/search")
+def search_podcasts(query: SearchQuery):
+    # ⚠️ This is a placeholder result, just for demo
+    return {
+        "results": [
+            {
+                "filename": "demo_podcast.mp3",
+                "topic": query.topic or "AI",
+                "score": 0.97,
+                "text": f"Sample result for query: '{query.query}'"
+            }
+        ]
+    }
+
+# 📤 Upload Endpoint (kept lightweight)
+@app.post("/upload")
+def upload_file(file: UploadFile = File(...), topic: str = Form(...)):
+    # Save the uploaded file temporarily
+    save_dir = f"audio_files/{topic}"
+    os.makedirs(save_dir, exist_ok=True)
+    file_path = os.path.join(save_dir, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Skip actual transcription for now
+    return {"message": "File uploaded successfully (mocked transcription not triggered)."}
