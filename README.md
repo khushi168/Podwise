@@ -223,9 +223,9 @@
 
 
 ### Deployment Notes
-   Can be deployed on Streamlit Cloud for free.
-   You must set up a remote PostgreSQL database (e.g., on Railway, Supabase).
-   Store your AssemblyAI key & DB credentials in Streamlit secrets or environment variables.
+     Can be deployed on Streamlit Cloud for free.
+     You must set up a remote PostgreSQL database (e.g., on Railway, Supabase).
+     Store your AssemblyAI key & DB credentials in Streamlit secrets or environment variables.
 
 
 👤 Author:
