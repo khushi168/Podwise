@@ -46,43 +46,43 @@
 
 ## 📁 Project Structure
 
-Podwise/
-  │
-  ├── audio_files/                        # All uploaded podcast .mp3 files, grouped by topic
-  │   ├── AI_cluster/
-  │   ├── Digital_Detox_cluster/
-  │   ├── Healthy_eating_cluster/
-  │   ├── Importance_of_sleep_cluster/
-  │   ├── Mindfulness_cluster/
-  │   ├── Personal_Finance_cluster/
-  │   ├── Travelling_cluster/
-  │   └── temp_audio.mp3
-  │
-  ├── models/                             # FAISS index and ID mappings
-  │   ├── faiss.index
-  │   ├── faiss_index_id_map.pkl
-  │   ├── id_mapping.pkl
-  │   ├── id_text_map.pkl
-  │   ├── id_text_map.pkl
-  │   └── transcriptions.index
-  │
-  ├── scripts/                            # Core ETL and backend scripts
-  │   ├── fetch_transcriptions.py           # Transcribes audio and inserts into DB
-  │   ├── generate_embeddings.py            # Embeds transcriptions and saves to FAISS
-  │   ├── search_api.py                     # API to perform semantic search
-  │   └── search_transcriptions.py          # Query FAISS index
-  │
-  ├── transcripts/                        # Optional raw text dump (if needed)
-  │
-  ├── .env                                # API Keys and secrets
-  ├── app.py                              # Entry point if needed
-  ├── frontend.py                         # Main Streamlit app file
-  ├── main.py                             # Optional additional app logic
-  ├── users.json                          # User authentication data
-  ├── requirements.txt                    # Python dependencies
-  ├── README.md                           # Project documentation
-  ├── LICENSE                             # MIT License
-  └── podwise_backup.dump                 # PostgreSQL DB backup
+    Podwise/
+      │
+      ├── audio_files/                        # All uploaded podcast .mp3 files, grouped by topic
+      │   ├── AI_cluster/
+      │   ├── Digital_Detox_cluster/
+      │   ├── Healthy_eating_cluster/
+      │   ├── Importance_of_sleep_cluster/
+      │   ├── Mindfulness_cluster/
+      │   ├── Personal_Finance_cluster/
+      │   ├── Travelling_cluster/
+      │   └── temp_audio.mp3
+      │
+      ├── models/                             # FAISS index and ID mappings
+      │   ├── faiss.index
+      │   ├── faiss_index_id_map.pkl
+      │   ├── id_mapping.pkl
+      │   ├── id_text_map.pkl
+      │   ├── id_text_map.pkl
+      │   └── transcriptions.index
+      │
+      ├── scripts/                            # Core ETL and backend scripts
+      │   ├── fetch_transcriptions.py           # Transcribes audio and inserts into DB
+      │   ├── generate_embeddings.py            # Embeds transcriptions and saves to FAISS
+      │   ├── search_api.py                     # API to perform semantic search
+      │   └── search_transcriptions.py          # Query FAISS index
+      │
+      ├── transcripts/                        # Optional raw text dump (if needed)
+      │
+      ├── .env                                # API Keys and secrets
+      ├── app.py                              # Entry point if needed
+      ├── frontend.py                         # Main Streamlit app file
+      ├── main.py                             # Optional additional app logic
+      ├── users.json                          # User authentication data
+      ├── requirements.txt                    # Python dependencies
+      ├── README.md                           # Project documentation
+      ├── LICENSE                             # MIT License
+      └── podwise_backup.dump                 # PostgreSQL DB backup
 
 ---
 
@@ -194,7 +194,7 @@ Podwise/
 
     File System Organization: Topic-based folder clustering
 
- ##Natural Language Processing (NLP)
+ ## Natural Language Processing (NLP)
     Automatic Speech Recognition (ASR): "AssemblyAI API"
     Text Embedding: "sentence-transformers"
     Semantic Search: Cosine similarity via FAISS
