@@ -19,10 +19,11 @@
 - 🧾 Stores transcriptions along with topic tags and filenames in PostgreSQL  
 - 🧠 Generates semantic vector embeddings for deep searchability  
 - 🔍 Searches podcasts via natural language queries with FAISS  
-- 🗂️ Organized by **topic clusters** for scalable search  
-- 🧩 Upload and transcribe new `.mp3` files via browser  
-- 🔐 Seamless **Login / Signup** system using `bcrypt` and `users.json`  
-- 🧠 Option to show more/less topics dynamically for quick access  
+- 🗂️ Organized by **topic clusters**, with support for **adding new topics**  
+- ⬆️ Upload podcasts directly from the browser  
+- 🔐 Seamless **Login / Signup** using `bcrypt` and `users.json`  
+- 🎯 Two-part frontend: **Search section** and **Upload section**  
+- 🔄 Topic dropdowns dynamically update with newly added topics  
 
 ---
 
@@ -39,30 +40,49 @@
   - `numpy`
   - `pickle-mixin`
 - **Database**: PostgreSQL 16+
-- **Transcription API**: [AssemblyAI](https://www.assemblyai.com/)  
+- **Transcription API**: [AssemblyAI](https://www.assemblyai.com/) 
 
 ---
 
 ## 📁 Project Structure
 
-    Podwise/
-    ├── audio_files/                # All uploaded podcast .mp3 files, grouped by topic
-    │   └── AI_cluster/
-    │   └── Sleep_cluster/
-    ├── models/                     # FAISS index and ID mappings
-    │   ├── transcriptions.index
-    │   ├── faiss_index_id_map.pkl
-    │   └── id_text_map.pkl
-    ├── scripts/                    # Core ETL and backend scripts
-    │   ├── fetch_transcriptions.py   # Uses AssemblyAI to transcribe audio and insert into DB
-    │   ├── generate_embeddings.py    # Converts transcripts into vector embeddings + FAISS
-    │   └── search_api.py             # Backend API for semantic search
-    ├── auth_app.py                 # Streamlit login/signup with bcrypt
-    ├── frontend.py                 # Main Streamlit frontend (search + upload)
-    ├── users.json                  # Auto-generated user DB with hashed passwords
-    ├── requirements.txt            # Python dependencies
-    ├── .gitignore
-    └── README.md
+Podwise/
+  │
+  ├── audio_files/                        # All uploaded podcast .mp3 files, grouped by topic
+  │   ├── AI_cluster/
+  │   ├── Digital_Detox_cluster/
+  │   ├── Healthy_eating_cluster/
+  │   ├── Importance_of_sleep_cluster/
+  │   ├── Mindfulness_cluster/
+  │   ├── Personal_Finance_cluster/
+  │   ├── Travelling_cluster/
+  │   └── temp_audio.mp3
+  │
+  ├── models/                             # FAISS index and ID mappings
+  │   ├── faiss.index
+  │   ├── faiss_index_id_map.pkl
+  │   ├── id_mapping.pkl
+  │   ├── id_text_map.pkl
+  │   ├── id_text_map.pkl
+  │   └── transcriptions.index
+  │
+  ├── scripts/                            # Core ETL and backend scripts
+  │   ├── fetch_transcriptions.py           # Transcribes audio and inserts into DB
+  │   ├── generate_embeddings.py            # Embeds transcriptions and saves to FAISS
+  │   ├── search_api.py                     # API to perform semantic search
+  │   └── search_transcriptions.py          # Query FAISS index
+  │
+  ├── transcripts/                        # Optional raw text dump (if needed)
+  │
+  ├── .env                                # API Keys and secrets
+  ├── app.py                              # Entry point if needed
+  ├── frontend.py                         # Main Streamlit app file
+  ├── main.py                             # Optional additional app logic
+  ├── users.json                          # User authentication data
+  ├── requirements.txt                    # Python dependencies
+  ├── README.md                           # Project documentation
+  ├── LICENSE                             # MIT License
+  └── podwise_backup.dump                 # PostgreSQL DB backup
 
 ---
 
@@ -104,7 +124,7 @@
       );
 
 
-### 5. Run the pipeline
+### 5. Run the Backend pipeline
    ## Step 1: Transcribe and insert into DB
        # Skips previously added files to avoid duplication
        # Adds topic & filename tags automatically
@@ -124,18 +144,24 @@
    ## Step 4: Search locally using CLI
     python scripts/search_api.py
 
----
-
-### Step 6: Start the Login + Frontend App
-
-    streamlit run auth_app.py
+   ## Step 5: Launch Streamlit App (Login + Upload + Search)
+    streamlit run frontend.py
     
-✅ Once logged in or signed up, it redirects to frontend.py, where you can:
+### Once logged in or signed up, it redirects to frontend.py, where you can:
 
-  # Upload new .mp3 files under a topic
-  # Search across podcast content using natural language  
-  # Listen to the results in-browser 
-  # Dynamically explore topic clusters with “Show more topics” toggle
+  1. Use the Search section to:
+
+    Select a topic from dropdown
+    
+    Enter a question or phrase to query related transcriptions
+
+  2. Use the Upload section to:
+
+    Choose existing topic or enter a new one
+    
+    Upload a new .mp3 file (saved under audio_files/{topic}_cluster/)
+
+    It gets transcribed and saved directly to the DB
 
 ### step 7: users.json Format (auto-generated)
     {
@@ -147,15 +173,59 @@
       ]
     }
 
-### step 8: ✅ Sample Git Commands
+### step 8: Sample Git Commands
     # Stage all changes
     git add .
     
     # Commit
-    git commit -m "Add login/signup with bcrypt and integrate frontend redirection"
+    git commit -m "Refactor upload & search into frontend.py, support topic creation"
     
     # Push to GitHub
     git push origin main
+
+### Technologies & Concepts Used: 
+ ## Data & ETL Pipeline
+    ETL (Extract, Transform, Load)
+      Extract: Audio files uploaded by users
+      Transform: Transcription (AssemblyAI), Embedding (Sentence Transformers)
+      Load: Transcriptions stored in PostgreSQL and FAISS
+
+    Audio File Management: .mp3 file handling and topic-wise storage
+
+    File System Organization: Topic-based folder clustering
+
+ ##Natural Language Processing (NLP)
+    Automatic Speech Recognition (ASR): "AssemblyAI API"
+    Text Embedding: "sentence-transformers"
+    Semantic Search: Cosine similarity via FAISS
+
+ ## Backend & Storage
+    PostgreSQL: For storing transcriptions, topics, and metadata
+    SQLAlchemy: ORM for database interaction
+    FAISS (Facebook AI Similarity Search): For fast vector similarity search
+    Pickle: Used for ID and text mapping storage
+
+ ## Authentication
+    User Management: JSON-based (users.json)
+    Password Hashing: "bcrypt"
+
+ ## Frontend
+    Streamlit: Main frontend interface (Login, Upload, Search UI)
+    Dropdowns & Forms: For topic selection and search queries
+    Streamlit Cloud: For potential deployment
+
+ ## Other Technologies & Tools
+    Python: Core language for logic and backend
+    .env: Environment variable management for API keys and DB credentials
+    FAISS Indexing: For scalable, clustered vector search
+    Git: Version control
+    AssemblyAI Webhooks (optional): Can be added for real-time callbacks
+
+
+### Deployment Notes
+   Can be deployed on Streamlit Cloud for free.
+   You must set up a remote PostgreSQL database (e.g., on Railway, Supabase).
+   Store your AssemblyAI key & DB credentials in Streamlit secrets or environment variables.
 
 
 👤 Author:
