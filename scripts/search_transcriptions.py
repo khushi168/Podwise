@@ -6,30 +6,24 @@ def semantic_search(query=None):
     from sentence_transformers import SentenceTransformer
     import psycopg2
 
-    # ---------- Load FAISS index ----------
     models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
     index = faiss.read_index(os.path.join(models_dir, "transcriptions.index"))
 
-    # ---------- Load ID mappings ----------
     with open(os.path.join(models_dir, "faiss_index_id_map.pkl"), "rb") as f:
-        index_to_dbid = pickle.load(f)  # List: index position → DB ID
+        index_to_dbid = pickle.load(f)
 
     with open(os.path.join(models_dir, "id_text_map.pkl"), "rb") as f:
-        dbid_to_text = pickle.load(f)   # Dict: DB ID → Text
+        dbid_to_text = pickle.load(f)
 
-    # ---------- Load embedding model ----------
     model = SentenceTransformer('all-MiniLM-L6-v2')
 
-    # ---------- Get user query ----------
     if query is None:
-        query = input("🔍 Enter your search query: ")
+        return []
+
     embedding = model.encode([query], normalize_embeddings=True).astype('float32')
-
-    # ---------- Search in FAISS ----------
     D, I = index.search(embedding, k=5)
-    threshold = 0.05  # Increased for more accuracy
+    threshold = 0.05
 
-    # ---------- Connect to DB ----------
     conn = psycopg2.connect(
         host="localhost",
         database="podcast_etl",
@@ -38,8 +32,7 @@ def semantic_search(query=None):
     )
     cur = conn.cursor()
 
-    found_match = False
-
+    results = []
     for faiss_idx, score in zip(I[0], D[0]):
         if faiss_idx == -1:
             continue
@@ -49,26 +42,18 @@ def semantic_search(query=None):
 
         cur.execute("SELECT filename, topic FROM transcriptions WHERE id = %s", (matched_db_id,))
         result = cur.fetchone()
-
         if result:
             filename, topic = result
         else:
             filename = topic = "Unknown"
 
-        print("\n🎯 Match Found:")
-        print(f"📂 File: {filename}")
-        print(f"🏷️ Topic: {topic}")
-        print(f"📊 Score: {score:.4f}")
-        print(f"📝 Transcription: {matched_text[:300]}...\n")
-
-        found_match = True
+        results.append({
+            "file": filename,
+            "topic": topic,
+            "score": float(score),
+            "chunk": matched_text
+        })
 
     cur.close()
     conn.close()
-
-    if not found_match:
-        print("❌ No relevant match found.")
-
-# ---------- Add CLI usage ----------
-if __name__ == "__main__":
-    semantic_search()
+    return results
